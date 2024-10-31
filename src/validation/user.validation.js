@@ -1,9 +1,7 @@
 import { body, validationResult } from "express-validator";
 import ApiError from "../utils/apiError.js";
-import FileDeletionUtil from "../utils/filedeletion.js";
-import {asyncHandler} from "../utils/asyncHandler.js"
-import {fileValidation} from "../validation/file.validation.js"
-
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { fileValidation } from "../validation/file.validation.js";
 
 const validateUserRegistration = [
   body("userName")
@@ -14,8 +12,8 @@ const validateUserRegistration = [
     .isString()
     .withMessage("Username must be a string.")
     .bail()
-    .isLength({ min: 3 })
-    .withMessage("Username must be at least 3 characters long."),
+    .isLength({ min: 5 })
+    .withMessage("Username must be at least 5 characters long."),
 
   body("email")
     .trim()
@@ -48,42 +46,23 @@ const validateUserRegistration = [
     .isLength({ min: 6 })
     .withMessage("Password must be at least 6 characters long."),
 
-  // File validation for avatar and coverImage
   fileValidation(
     "avatar",
     ["image/jpeg", "image/jpg", "image/png", "image/gif"],
     "Invalid file type for avatar. Only JPEG, JPG, PNG, and GIF are allowed.",
-    true
+    false
   ),
   fileValidation(
     "coverImage",
     ["image/jpeg", "image/jpg", "image/png", "image/gif"],
     "Invalid file type for coverImage. Only JPEG, JPG, PNG, and GIF are allowed.",
-    false 
+    false
   ),
 ];
 
-// Cleanup function for uploaded files
-const cleanupUploadedFiles = async (files) => {
-  const avatarFile = files?.avatar?.[0]?.path;
-  const coverImageFile = files?.coverImage?.[0]?.path;
-
-  if (avatarFile) {
-    await FileDeletionUtil.deleteLocalFile(avatarFile);
-  }
-  if (coverImageFile) {
-    await FileDeletionUtil.deleteLocalFile(coverImageFile);
-  }
-};
-
-// Middleware to handle validation errors
 const handleValidationErrors = asyncHandler(async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    // Cleanup any uploaded files
-    await cleanupUploadedFiles(req.files);
-
-    // Return validation errors as response
     throw new ApiError(400, "Validation Error", errors.array());
   }
   next();

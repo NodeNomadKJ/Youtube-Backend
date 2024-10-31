@@ -1,24 +1,27 @@
 import { Router } from "express";
-import { userRegisteration } from "../controllers/user.controller.js";
-import upload from "../middlewares/multer.middleware.js";
-import { validateUserRegistration,handleValidationErrors } from "../validation/user.validation.js";
+import {
+  userRegisterationController,
+  userLoginController,
+  userLogoutController,
+} from "../controllers/user.controller.js";
+import {
+  validateUserRegistration,
+  handleValidationErrors,
+} from "../validation/user.validation.js";
+import { isAuthenticated } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.route("/register").post(
-  upload.fields([
-    {
-      name: "avatar",
-      maxCount: 1,
-    },
-    {
-      name: "coverImage",
-      maxCount: 1,
-    },
-  ]),
-  validateUserRegistration,
-  handleValidationErrors,
-  userRegisteration
-);
+router
+  .route("/register")
+  .post(
+    validateUserRegistration,
+    handleValidationErrors,
+    userRegisterationController
+  );
+
+router.route("/login").post(userLoginController);
+
+router.route("/logout").post(isAuthenticated, userLogoutController);
 
 export default router;

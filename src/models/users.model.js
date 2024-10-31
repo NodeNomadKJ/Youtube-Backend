@@ -11,7 +11,7 @@ const userSchema = new Schema(
       trim: true,
       lowercase: true,
       index: true,
-      minlength: 3,
+      minlength: 5,
     },
     email: {
       type: String,
@@ -29,23 +29,27 @@ const userSchema = new Schema(
     },
     avatar: {
       type: String,
-      required: true,
     },
     coverImage: {
       type: String,
     },
-    watchHistory: {
-      type: Schema.ObjectId,
-      ref: "video",
-    },
+    watchHistory: [
+      {
+        type: Schema.ObjectId,
+        ref: "video",
+      },
+    ],
     password: {
       type: String,
       required: true,
       minlength: 6,
     },
-    refreshToken: {
-      type: String,
-    },
+    sessions: [
+      {
+        sessionId: { type: String, unique: true },
+        refreshToken: String,
+      },
+    ],
   },
   { timestamps: true }
 );
@@ -62,14 +66,18 @@ userSchema.pre("save", async function (next) {
   }
 });
 
-//Encrypting Password using Jwt
-userSchema.methods.generateAccessToken = function () {
+userSchema.methods.isPasswordCorrect = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};
+
+//Generating Jwt
+userSchema.methods.generateAccessToken = function (sessionId) {
   try {
     const token = jwt.sign(
       {
         _id: this._id,
-        email: this.email,
         userName: this.userName,
+        sessionId
       },
       process.env.ACCESS_TOKEN_SECRET,
       {
@@ -82,11 +90,12 @@ userSchema.methods.generateAccessToken = function () {
   }
 };
 
-userSchema.methods.generateRefreshToken = function () {
+userSchema.methods.generateRefreshToken = function (sessionId) {
   try {
     const token = jwt.sign(
       {
         _id: this._id,
+        sessionId
       },
       process.env.REFRESH_TOKEN_SECRET,
       {
